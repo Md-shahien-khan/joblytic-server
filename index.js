@@ -32,7 +32,7 @@ async function run() {
 
     // jobs Related Api
     const jobsCollection = client.db('joblytic').collection('jobs');
-    const jobApplicationCollection = Client.db('joblytic').collection('job_applications');
+    const jobApplicationCollection = client.db('joblytic').collection('job_applications');
 
 
     // create or get
@@ -56,7 +56,16 @@ async function run() {
         const application = req.body;
         const result = await jobApplicationCollection.insertOne(application);
         res.send(result);
-    })
+    });
+
+
+    // get all data or one data 1 or many
+    app.get('/job-application', async (req, res) =>{
+        const email = req.query.email;
+        const query = {applicant_email : email}
+        const result = await jobApplicationCollection.find(query).toArray();
+        res.send(result);
+    });
       
 
 
