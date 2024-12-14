@@ -2,7 +2,7 @@ const express = require ('express');
 const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 5000;
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 
 // middle ware
@@ -32,13 +32,32 @@ async function run() {
 
     // jobs Related Api
     const jobsCollection = client.db('joblytic').collection('jobs');
+    const jobApplicationCollection = Client.db('joblytic').collection('job_applications');
+
+
     // create or get
     app.get('/jobs', async(req, res) =>{
         const cursor = jobsCollection.find();
         const result = await cursor.toArray();
         res.send(result);
-    })
+    });
+    
+    // job by id
+    app.get('/jobs/:id', async(req, res) =>{
+        const id = req.params.id;
+        const query = {_id: new ObjectId(id)}
+        const result = await jobsCollection.findOne(query);
+        res.send(result);
+    });
 
+
+    // jobApplication aPi
+    app.post('/job-applications', async(req, res) =>{
+        const application = req.body;
+        const result = await jobApplicationCollection.insertOne(application);
+        res.send(result);
+    })
+      
 
 
   } finally {
