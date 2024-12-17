@@ -30,14 +30,20 @@ async function run() {
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
 
-    // jobs Related Api
+    
     const jobsCollection = client.db('joblytic').collection('jobs');
     const jobApplicationCollection = client.db('joblytic').collection('job_applications');
 
 
-    // create or get
+    // jobs Related Api
     app.get('/jobs', async(req, res) =>{
-        const cursor = jobsCollection.find();
+        const email = req.query.email;
+        console.log(email)
+        let query = {};
+        if(email){
+            query = {hr_email : email}
+        }
+        const cursor = jobsCollection.find(query);
         const result = await cursor.toArray();
         res.send(result);
     });
@@ -50,13 +56,64 @@ async function run() {
         res.send(result);
     });
 
+    // create jobs
+    app.post('/jobs', async(req, res) => {
+        const newJob = req.body;
+        const result = await jobsCollection.insertOne(newJob);
+        res.send(result);
+    })
+
 
     // jobApplication aPi
     app.post('/job-applications', async(req, res) =>{
         const application = req.body;
         const result = await jobApplicationCollection.insertOne(application);
+        // not the best way
+        const id = application.job_id;
+        const query = {_id: new ObjectId(id)}
+        const job = await jobsCollection.findOne(query)
+        // console.log(job);
+        let newCount = 0;
+        if(job.applicationCount){
+            newCount = job.applicationCount + 1;
+        }
+        else{
+            newCount = 1;
+        }
+        // now update the job info
+        const filter = {_id: new ObjectId(id)};
+        const updatedDoc = {
+            $set : {
+                applicationCount : newCount
+            }
+        }
+        const updateResult = await jobsCollection.updateOne(filter, updatedDoc);
         res.send(result);
     });
+
+
+    // app.get('/job-applications/:id) ===> get a specific job application by id
+    app.get('/job-applications/jobs/:job_id', async(req, res) =>{
+        const jobId = req.params.job_id;
+        const query = {job_id : jobId}
+        const result = await jobApplicationCollection.find(query).toArray();
+        res.send(result);
+    });
+
+    // update viewApplication Part
+    app.patch('/job-applications/:id', async(req, res) => {
+        const id = req.params.id;
+        const data = req.body;
+        const filter = {_id: new ObjectId(id)};
+        const updatedDoc = {
+            $set : {
+                status : data.status
+            }
+        }
+        const result = await jobApplicationCollection.updateOne(filter, updatedDoc);
+        res.send(result);
+    }) 
+
 
 
     // get all data or one data 1 or many
@@ -64,8 +121,33 @@ async function run() {
         const email = req.query.email;
         const query = {applicant_email : email}
         const result = await jobApplicationCollection.find(query).toArray();
-        res.send(result);
+
+        // not the correct way
+        for(const application of result){
+            console.log(application.job_id)
+            const query1 = {_id: new ObjectId(application.job_id)}
+            const job = await jobsCollection.findOne(query1)
+            if(job){
+                application.title = job.title;
+                application.company = job.company;
+                application.location = job.location;
+                application.company_logo = job.company_logo;
+                application.applicant_email = job.applicant_email;
+                application.company = job.company;
+                
+            }
+        }
+        res.send(result)
     });
+
+
+    // app.delete('/job-application/:id', async (req, res) => {
+    //     const id = req.params.id;
+    //     const query = { _id: new ObjectId(id) };
+    //     const result = await jobApplicationCollection.deleteOne(query);
+    //     res.send(result);
+    //     // console.log(id);
+    // });
       
 
 
