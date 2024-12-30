@@ -13,7 +13,10 @@ require('dotenv').config();
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-    origin : ['http://localhost:5176'],
+    origin : ['http://localhost:5173',
+              'joblytic.web.app',
+              'joblytic.firebaseapp.com'
+            ],
     credentials : true
 }));
 
@@ -56,10 +59,10 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // await client.db("admin").command({ ping: 1 });
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
 
     // job related apis
@@ -92,12 +95,20 @@ async function run() {
     app.get('/jobs', logger, async(req, res) =>{
         console.log('now inside the api callback')
         const email = req.query.email;
-        console.log(email)
+        // console.log(email)
+        let sort = req.query?.sort;
         let query = {};
+        // sorting
+        let sortQuery = {};
         if(email){
             query = {hr_email : email}
         }
-        const cursor = jobsCollection.find(query);
+
+        if(sort == "true"){
+            sortQuery = {"salaryRange.min" : -1 }
+        }
+
+        const cursor = jobsCollection.find(query).sort(sortQuery);
         const result = await cursor.toArray();
         res.send(result);
     });
