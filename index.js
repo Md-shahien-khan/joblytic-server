@@ -96,18 +96,36 @@ async function run() {
         console.log('now inside the api callback')
         const email = req.query.email;
         // console.log(email)
-        let sort = req.query?.sort;
+        const sort = req.query?.sort;
         let query = {};
+        const search = req.query?.search;
+        const searchByTitle = req.query?.searchByTitle;
+        console.log(searchByTitle)
+        // const searchJob = req.query?.searchJob;
+        const min = req.query?.min;
+        const max = req.query?.max;
         // sorting
         let sortQuery = {};
         if(email){
             query = {hr_email : email}
         }
-
         if(sort == "true"){
             sortQuery = {"salaryRange.min" : -1 }
         }
-
+        if(search){
+            query.location = {$regex  :search, $options : "i"};
+        };
+        if(searchByTitle){
+            query.title = {$regex  :searchByTitle, $options : "i"};
+        };
+        if(min && max){
+            query = {
+                ...query,
+                "salaryRange.min"  : { $gte : parseInt(min)},
+                "salaryRange.max" : { $lte : parseInt(max)},
+            }
+        }
+        console.log(query)
         const cursor = jobsCollection.find(query).sort(sortQuery);
         const result = await cursor.toArray();
         res.send(result);
